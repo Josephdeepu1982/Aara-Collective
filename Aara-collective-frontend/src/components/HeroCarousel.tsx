@@ -64,7 +64,10 @@ const HeroCarousel = () => {
       >
         <CarouselContent>
           {slides.map((slide, index) => (
-            <CarouselItem key={index} className="relative h-screen aspect-[16/9]">
+            <CarouselItem
+              key={index}
+              className="relative h-screen aspect-[16/9]"
+            >
               <img
                 src={slide.image}
                 alt={slide.title}
