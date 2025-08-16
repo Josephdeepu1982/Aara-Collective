@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 //type Product = { ... } defines a custom TypeScript type that describes the shape of a product object.
 //export makes that type available to other files that import it.
@@ -8,25 +8,68 @@ export type Product = {
   price: number;
   image: string;
   subtitle?: string;
+  category?: string;
+  isNew?: boolean;
+  isSale?: boolean;
+  salePrice?: number;
+  isBestSeller?: boolean;
 };
 //describes the shape of the props object that a React component will receive. type Props = { ... } creates a custom Typescript type named Props. We say that Props must include a product key, and its value must match the Product type defined above.
 type Props = {
   product: Product;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: Product) => void; //triggred when user clicks "Add to Cart" button
+  onClick?: () => void; //triggered when the entire card is clicked—like making the card behave like a link or open a modal.
+  showAddButton?: boolean;
+  badgeText?: string; //Optional text to show as a badge like "New" or "Best Seller".
+  className?: string;
 };
 
-//Props type ensures that product is a Product object with id, name, price...etc
-const ProductCard = ({ product, onAddToCart }: Props) => {
+//Props type ensures that product is a Product object with id, name, price...etc. uses object destructuring to pull out individual props from the Props object.
+const ProductCard = ({
+  product,
+  onAddToCart,
+  onClick,
+  showAddButton = true,
+  badgeText,
+  className = " ",
+}: Props) => {
+  //useMemo is a react hook that caches the result of a calculation. It only recalculates when product changes.This improves performance by avoiding unnecessary recalculations on every render.
+  //priceToShow: If the product is on sale and has a valid salePrice, use that.Otherwise, use the regular price.
   //format the price in SGD using the JS built-in Javascript Intl.NumberFormat API to format the product's price.
   // { style: "currency", currency: "SGD" } tells it to format the number as Singapore Dollars.
-  // .format(product.price) takes the raw number (e.g. 129.99) and turns it into "SGD 129.99".
-  const formattedPrice = Intl.NumberFormat("en-SG", {
-    style: "currency",
-    currency: "SGD",
-  }).format(product.price);
+  // .format(priceToShow) takes the raw number (e.g. 129.99) and turns it into "SGD 129.99".
+  //React will only re-run the function inside useMemo if the [product] object changes.
+  const formattedPrice = useMemo(() => {
+    const priceToShow =
+      product.isSale && product.salePrice ? product.salePrice : product.price;
+    return new Intl.NumberFormat("en-SG", {
+      style: "currency",
+      currency: "SGD",
+    }).format(priceToShow);
+  }, [product]);
+
+  // Check if there's a valid sale
+  const hasSale =
+    product.isSale && product.salePrice && product.salePrice < product.price;
+
+  //Determine badge text
+  const derivedBadge =
+    badgeText ||
+    (product.isBestSeller ? "Best Seller" : product.isNew ? "New" : undefined);
 
   return (
-    <div className="group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md">
+    <div
+      className={
+        "group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md" +
+        (onClick ? " cursor-pointer" : "") +
+        (className ? ` ${className}` : "")
+      }
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : -1}
+      // ${onClick ? "cursor-pointer" : "" is a conditional class that is only applied if onClick exists}
+      // ${className} allows the parent component to pass in additional Tailwind classes.
+    >
       {/* Product image */}
       <div className="relative aspect-[4/5] overflow-hidden">
         <img
@@ -36,9 +79,15 @@ const ProductCard = ({ product, onAddToCart }: Props) => {
         />
 
         {/* badge */}
-        <span className="absolute left-2 top-2 rounded-full bg-gold-500/90 px-2 py-1 text-xs font-semibold text-white">
-          Best Seller
-        </span>
+        {derivedBadge && (
+          <span
+            className={`absolute left-2 top-2 rounded-full px-2 py-1 text-xs font-semibold text-white ${
+              derivedBadge === "Best Seller" ? "bg-[#d4af37]" : "bg-pink-700"
+            }`}
+          >
+            {derivedBadge}
+          </span>
+        )}
       </div>
 
       {/* Product Details */}
@@ -55,19 +104,34 @@ const ProductCard = ({ product, onAddToCart }: Props) => {
           </p>
         )}
 
-        {/* Price */}
-        <p className="text-base font-semibold tracking-tight text-pink-700">
-          {formattedPrice}
-        </p>
+        {/* Price Section */}
+        <div className="mt-1">
+          <span className="text-base font-semibold tracking-tight text-pink-700">
+            {formattedPrice}
+          </span>
+          {hasSale && (
+            <span className="ml-2 text-sm text-gray-400 line-through">
+              {new Intl.NumberFormat("en-SG", {
+                style: "currency",
+                currency: "SGD",
+              }).format(product.price)}
+            </span>
+          )}
+        </div>
 
         {/* Add to cart Button */}
-        <button
-          className="mt-2 w-full rounded-md bg-pink-700 py-2 text-sm font-medium text-white transtiion hover:bg-pink-800"
-          onClick={() => onAddToCart?.(product)} // optional chaining to avoid errors
-          aria-label={`Add ${product.name} to cart`}
-        >
-          Add to cart
-        </button>
+        {showAddButton && (
+          <button
+            className="mt-2 w-full rounded-md bg-pink-700 py-2 text-sm font-medium text-white transition hover:bg-pink-800"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent card click
+              onAddToCart?.(product);
+            }}
+            aria-label={`Add ${product.name} to cart`}
+          >
+            Add to cart
+          </button>
+        )}
       </div>
     </div>
   );
@@ -75,7 +139,7 @@ const ProductCard = ({ product, onAddToCart }: Props) => {
 
 export default ProductCard;
 
-// 🛍️ Sample product data
+// Sample product data
 export const bestSellers: Product[] = [
   {
     id: "1",
