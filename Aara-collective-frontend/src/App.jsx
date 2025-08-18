@@ -6,29 +6,33 @@ import FeaturedProducts from "./components/FeaturedProducts";
 import { bestSellers, handleAddToCart } from "./components/ProductCard";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ShopPage from "./pages/ShopPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 const App = () => {
   return (
     <>
-      <Header />
-      <main className="p-1">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <HeroCarousel />
-                <FeaturedProducts
-                  products={bestSellers}
-                  onAddToCart={handleAddToCart}
-                />
-              </>
-            }
-          />
-          <Route path="/shop" element={<ShopPage />} />
-        </Routes>
-      </main>
-      <Footer />
+      <div className="min-h-screen flex flex-col bg-white">
+        <Header />
+        <main className="flex-1">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <HeroCarousel />
+                  <FeaturedProducts
+                    products={bestSellers}
+                    onAddToCart={handleAddToCart}
+                  />
+                </>
+              }
+            />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </>
   );
 };

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { GridIcon, ListIcon, FilterIcon } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import { useNavigate } from "react-router-dom";
 
 // shadcn/ui components
 import {
@@ -138,6 +139,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
 //---------------------ShopPage Component-----------------------------
 
 const ShopPage = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams(); //useSearchParams lets use read the current URL's query parameters.
   // For example: /shop?category=Jewellery&status=sale
   // searchParams.get("category") → "Jewellery"
@@ -538,6 +540,8 @@ const ShopPage = () => {
                       price: cardPrice,
                       subtitle: p.category,
                     }}
+                    clickable // ⬅️ whole card navigates to /product/:id
+                    showAddButton={false}
                   />
                 );
               })}
@@ -600,7 +604,12 @@ const ShopPage = () => {
                         <Button className="bg-pink-700 hover:bg-pink-800">
                           Add to cart
                         </Button>
-                        <Button variant="outline">View Details</Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/product/${p.id}`)}
+                        >
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   </div>

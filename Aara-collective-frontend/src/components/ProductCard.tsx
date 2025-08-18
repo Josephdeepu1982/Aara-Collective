@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 //type Product = { ... } defines a custom TypeScript type that describes the shape of a product object.
 //export makes that type available to other files that import it.
@@ -19,6 +21,7 @@ type Props = {
   product: Product;
   onAddToCart?: (product: Product) => void; //triggred when user clicks "Add to Cart" button
   onClick?: () => void; //triggered when the entire card is clicked—like making the card behave like a link or open a modal.
+  clickable?: boolean; // default false
   showAddButton?: boolean;
   badgeText?: string; //Optional text to show as a badge like "New" or "Best Seller".
   className?: string;
@@ -29,10 +32,14 @@ const ProductCard = ({
   product,
   onAddToCart,
   onClick,
+  clickable = false,
   showAddButton = true,
   badgeText,
-  className = " ",
+  className = "",
 }: Props) => {
+  const navigate = useNavigate();
+  const goDetails = () => navigate(`/product/${product.id}`);
+
   //useMemo is a react hook that caches the result of a calculation. It only recalculates when product changes.This improves performance by avoiding unnecessary recalculations on every render.
   //priceToShow: If the product is on sale and has a valid salePrice, use that.Otherwise, use the regular price.
   //format the price in SGD using the JS built-in Javascript Intl.NumberFormat API to format the product's price.
@@ -57,18 +64,35 @@ const ProductCard = ({
     badgeText ||
     (product.isBestSeller ? "Best Seller" : product.isNew ? "New" : undefined);
 
+  // Handle whole-card click (if enabled) + optional external onClick hook
+  const handleCardClick = () => {
+    if (!clickable) return;
+    if (onClick) {
+      onClick();
+      return;
+    }
+    goDetails();
+  };
+
+  // Keyboard activation (Enter/Space) for accessibility when clickable
+  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+    if (!clickable) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   return (
     <div
-      className={
-        "group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md" +
-        (onClick ? " cursor-pointer" : "") +
-        (className ? ` ${className}` : "")
-      }
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : -1}
-      // ${onClick ? "cursor-pointer" : "" is a conditional class that is only applied if onClick exists}
-      // ${className} allows the parent component to pass in additional Tailwind classes.
+      className={`group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md ${
+        clickable ? "cursor-pointer" : ""
+      } ${className}`}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : -1}
+      aria-label={clickable ? `View details for ${product.name}` : undefined}
     >
       {/* Product image */}
       <div className="relative aspect-[4/5] overflow-hidden">
@@ -121,16 +145,17 @@ const ProductCard = ({
 
         {/* Add to cart Button */}
         {showAddButton && (
-          <button
-            className="mt-2 w-full rounded-md bg-pink-700 py-2 text-sm font-medium text-white transition hover:bg-pink-800"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent card click
-              onAddToCart?.(product);
-            }}
-            aria-label={`Add ${product.name} to cart`}
-          >
-            Add to cart
-          </button>
+          <div className="mt-3">
+            <Button
+              className="bg-pink-700 hover:bg-pink-800"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                onAddToCart?.(product);
+              }}
+            >
+              Add to cart
+            </Button>
+          </div>
         )}
       </div>
     </div>

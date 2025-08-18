@@ -66,7 +66,11 @@ const FeaturedProducts = ({
               key={product.id}
               className="basis-3/4 pl-2 sm:basis-1/2 md:basis-1/3 md:pl-4 lg:basis-1/4"
             >
-              <ProductCard product={product} onAddToCart={onAddToCart} />
+              <ProductCard
+                product={product}
+                onAddToCart={onAddToCart}
+                clickable={true}
+              />
             </CarouselItem>
           ))}
         </CarouselContent>
