@@ -196,7 +196,7 @@ export const bestSellers: Product[] = [
   },
 ];
 
-// Cart handler
+// Dummy add to Cart handler - to update the cart state
 export const handleAddToCart = (product: Product) => {
   console.log("Add to cart:", product.id);
 };
