@@ -12,10 +12,12 @@ import {
 
 const Footer = () => {
   return (
+    // Footer uses a pink gradient background
     <footer className="bg-gradient-to-b from-pink-600 via-pink-700 to-pink-800 text-white">
       <div className="max-w-7xl mx-auto px-6 py-16">
+        {/* Organizes the footer into 4 columns on large screens. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* About Section */}
+          {/* About Section with social media icons*/}
           <div>
             <h2 className="text-xl font-semibold text-gold-300 mb-4 tracking-wide">
               Aara Collective
@@ -24,11 +26,13 @@ const Footer = () => {
               Authentic Indian jewelry, clothing, and footwear—bringing the rich
               cultural heritage of India to the global stage.
             </p>
+            {/* Create a horizontal row of social media icons - each icon is clickable. Uses Flexbox to lay out the icons side by side. Adds horizontal spacing (space-x-4) between each icon.*/}
+            
             <div className="flex space-x-4">
               {[InstagramIcon, FacebookIcon, TwitterIcon, YoutubeIcon].map(
-                (Icon, i) => (
+                (Icon, index) => (
                   <a
-                    key={i}
+                    key={index}
                     href="#"
                     className="text-gold-200 hover:text-gold-100 transition-colors duration-200"
                   >
