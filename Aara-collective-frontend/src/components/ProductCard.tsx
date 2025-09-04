@@ -1,10 +1,8 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCartContext } from "@/context/useCartContext";
 
-//type Product = { ... } defines a custom TypeScript type that describes the shape of a product object.
-//export makes that type available to other files that import it.
 export type Product = {
   id: string;
   name: string;
@@ -17,159 +15,133 @@ export type Product = {
   salePrice?: number;
   isBestSeller?: boolean;
 };
-//describes the shape of the props object that a React component will receive. type Props = { ... } creates a custom Typescript type named Props. We say that Props must include a product key, and its value must match the Product type defined above.
+
 type Props = {
   product: Product;
-  onAddToCart?: (product: Product) => void; //triggred when user clicks "Add to Cart" button
-  onClick?: () => void; //triggered when the entire card is clicked—like making the card behave like a link or open a modal.
-  clickable?: boolean; // default false
+  clickable?: boolean;
+  onAddToCart?: (p: Product) => void;
   showAddButton?: boolean;
-  badgeText?: string; //Optional text to show as a badge like "New" or "Best Seller".
+  onClick?: () => void;
   className?: string;
 };
 
-//Props type ensures that product is a Product object with id, name, price...etc. uses object destructuring to pull out individual props from the Props object.
-const ProductCard = ({
+const sgd = (amount: number) =>
+  new Intl.NumberFormat("en-SG", { style: "currency", currency: "SGD" }).format(
+    amount,
+  );
+
+const ProductCard: React.FC<Props> = ({
   product,
-  onAddToCart,
-  onClick,
   clickable = false,
+  onAddToCart,
   showAddButton = true,
-  badgeText,
+  onClick,
   className = "",
-}: Props) => {
+}) => {
   const navigate = useNavigate();
-  const goDetails = () => navigate(`/product/${product.id}`);
+  const { addItemToCart } = useCartContext();
 
-  //useMemo is a react hook that caches the result of a calculation. It only recalculates when product changes.This improves performance by avoiding unnecessary recalculations on every render.
-  //priceToShow: If the product is on sale and has a valid salePrice, use that.Otherwise, use the regular price.
-  //format the price in SGD using the JS built-in Javascript Intl.NumberFormat API to format the product's price.
-  // { style: "currency", currency: "SGD" } tells it to format the number as Singapore Dollars.
-  // .format(priceToShow) takes the raw number (e.g. 129.99) and turns it into "SGD 129.99".
-  //React will only re-run the function inside useMemo if the [product] object changes.
-  const formattedPrice = useMemo(() => {
-    const priceToShow =
-      product.isSale && product.salePrice ? product.salePrice : product.price;
-    return new Intl.NumberFormat("en-SG", {
-      style: "currency",
-      currency: "SGD",
-    }).format(priceToShow);
-  }, [product]);
+  const priceToShow =
+    product.isSale && typeof product.salePrice === "number"
+      ? product.salePrice
+      : product.price;
 
-  // Check if there's a valid sale
-  const hasSale =
-    product.isSale && product.salePrice && product.salePrice < product.price;
+  const handleAdd = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (onAddToCart) {
+      onAddToCart(product);
+    } else {
+      addItemToCart({
+        id: product.id,
+        name: product.name,
+        image: product.image,
+        price: priceToShow,
+        salePrice:
+          product.isSale && typeof product.salePrice === "number"
+            ? product.salePrice
+            : undefined,
+        quantity: 1,
+      });
+    }
+    window.dispatchEvent(new CustomEvent("cart:open"));
+  };
 
-  //Determine badge text
-  const derivedBadge =
-    badgeText ||
-    (product.isBestSeller ? "Best Seller" : product.isNew ? "New" : undefined);
-
-  // Handle whole-card click (if enabled) + optional external onClick hook
   const handleCardClick = () => {
-    if (!clickable) return;
-    if (onClick) {
-      onClick();
-      return;
-    }
-    goDetails();
+    if (onClick) return onClick();
+    if (clickable) navigate(`/product/${product.id}`);
   };
-
-  // Keyboard activation (Enter/Space) for accessibility when clickable
-  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (!clickable) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleCardClick();
-    }
-  };
-
-  const handleAdd = (e: MouseEvent) => {
-  e.stopPropagation();
-  e.preventDefault();
-  if (onAddToCart) {
-    onAddToCart(product);
-  } else {
-    addItemToCart({
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      price: priceToShow,
-      quantity: 1,
-    });
-  }
-  window.dispatchEvent(new CustomEvent("cart:open")); // 🔧 auto-open
-};
 
   return (
     <div
-      className={`group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md ${
-        clickable ? "cursor-pointer" : ""
-      } ${className}`}
+      role={clickable || onClick ? "button" : "group"}
+      tabIndex={clickable || onClick ? 0 : -1}
       onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : -1}
-      aria-label={clickable ? `View details for ${product.name}` : undefined}
+      onKeyDown={(e) => {
+        if ((clickable || onClick) && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-xl border border-[#f6e7c8] bg-white shadow-sm transition hover:shadow-md ${className}`} // ✅
     >
-      {/* Product image */}
-      <div className="relative aspect-[4/5] overflow-hidden">
+      {/* Image */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden">
         <img
           src={product.image}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
         />
-
-        {/* badge */}
-        {derivedBadge && (
-          <span
-            className={`absolute left-2 top-2 rounded-full px-2 py-1 text-xs font-semibold text-white ${
-              derivedBadge === "Best Seller" ? "bg-[#d4af37]" : "bg-pink-700"
-            }`}
-          >
-            {derivedBadge}
+        {product.isNew && (
+          <span className="absolute left-2 top-2 rounded bg-pink-700 px-2 py-0.5 text-xs font-semibold text-white">
+            NEW
+          </span>
+        )}
+        {product.isBestSeller && (
+          <span className="absolute right-2 top-2 rounded bg-yellow-500/90 px-2 py-0.5 text-xs font-semibold text-white">
+            ★ Best Seller
           </span>
         )}
       </div>
 
-      {/* Product Details */}
-      <div className="space-y-1 p-4">
-        <h3 className="line-clamp-1 text-sm font-medium text-gray-900">
-          {product.name}
-        </h3>
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-3">
+        <div className="min-h-[3.5rem]">
+          <h3 className="line-clamp-1 text-[15px] font-medium text-gray-900">
+            {product.name}
+          </h3>
+          {product.subtitle && (
+            <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">
+              {product.subtitle}
+            </p>
+          )}
+        </div>
 
-        {/* Show subtitle if it exists - If product.subtitle exists (i.e., it's not null, undefined, or an empty string), then render this <p> tag. 
-        shorthand for if (product.subtitle) {return <p>...</p>;}*/}
-        {product.subtitle && (
-          <p className="line-clamp-1 text-xs text-gray-500">
-            {product.subtitle}
-          </p>
-        )}
-
-        {/* Price Section */}
-        <div className="mt-1">
-          <span className="text-base font-semibold tracking-tight text-pink-700">
-            {formattedPrice}
-          </span>
-          {hasSale && (
-            <span className="ml-2 text-sm text-gray-400 line-through">
-              {new Intl.NumberFormat("en-SG", {
-                style: "currency",
-                currency: "SGD",
-              }).format(product.price)}
+        {/* Price */}
+        <div className="mt-2 flex items-baseline gap-2">
+          {product.isSale && typeof product.salePrice === "number" ? (
+            <>
+              <span className="text-[15px] font-semibold text-pink-700">
+                {sgd(product.salePrice)}
+              </span>
+              <span className="text-xs text-gray-400 line-through">
+                {sgd(product.price)}
+              </span>
+            </>
+          ) : (
+            <span className="text-[15px] font-semibold text-gray-900">
+              {sgd(product.price)}
             </span>
           )}
         </div>
 
-        {/* Add to cart Button */}
+        {/* CTA */}
         {showAddButton && (
           <div className="mt-3">
             <Button
-              className="bg-pink-700 hover:bg-pink-800"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card click
-                onAddToCart?.(product);
-              }}
+              className="w-full bg-pink-700 hover:bg-pink-800"
+              onClick={handleAdd}
             >
               Add to cart
             </Button>
@@ -181,40 +153,3 @@ const ProductCard = ({
 };
 
 export default ProductCard;
-
-// Sample product data
-export const bestSellers: Product[] = [
-  {
-    id: "1",
-    name: "Kundan Necklace Set",
-    price: 179.0,
-    image: "/featuredProducts/necklace.png",
-    subtitle: "Jewellery · Kundan",
-  },
-  {
-    id: "2",
-    name: "Embroidered Kurti",
-    price: 89.0,
-    image: "/featuredProducts/Saree.png",
-    subtitle: "Clothing · Kurtis",
-  },
-  {
-    id: "3",
-    name: "Jutti Mojari",
-    price: 59.0,
-    image: "/featuredProducts/Saree1.png",
-    subtitle: "Footwear",
-  },
-  {
-    id: "4",
-    name: "Polki Earrings",
-    price: 129.0,
-    image: "/featuredProducts/Bangles.png",
-    subtitle: "Jewellery · Polki",
-  },
-];
-
-// Dummy add to Cart handler - to update the cart state
-export const handleAddToCart = (product: Product) => {
-  console.log("Add to cart:", product.id);
-};
