@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//Run npx prisma generate, Tells Prisma to create a TypeScript client so your app can talk to the database.
+generator client {
+  provider =  "prisma-client-js" //takes all the prisma cide and coverts it using the prisma-slient-js formatter
+  output   = "../generated/prisma"
+}
+
+//Connects to your PostgreSQL database
+datasource db {
+  provider = "postgresql" //Indicates that you're using a PostgreSQL database.
+  url      = env("DATABASE_URL") //Reads the connection string from an environment variable
+}
+
+//enums are like dropdown menus or fixed sets of options your app can use to track the status of orders and payments.
+enum OrderStatus {
+  PENDING //Order placed but not paid yet.
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING //Payment is in progress or awaiting confirmation.
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+//Each row in this table represents a product category like “Jewelry,”Shoes"..etc
+model Category {
+  id     String @id @default(cuid()) //	Unique ID auto-generated using cuid()
+  name   String @unique
+  slug   String @unique //URL-friendly version of the name (e.g. /category/jewelry instead of /category?id=12345), 
+  products  Product[] //Creates a one-to-many relationship -> One category can have many products, and each product belongs to one category.
+  createdAt DateTime @default(now()) //auto-filled
+  updatedAt DateTime @updatedAt //updated automatically whenever category is modified
+}
+
+//defines the structure of a Product in your database
+model Product {
+  id           String           @id @default(cuid())
+  name         String           //Product name
+  subtitle     String?
+  description  String?
+  basePriceCents Int           //Regular price in cents (e.g. $2,499 = 249900)
+  salePriceCents Int?
+  isSale       Boolean          @default(false)
+  isNew        Boolean          @default(false)
+  isBestSeller Boolean          @default(false)
+  popularity   Int              @default(0) //Popularity score starts at 0
+  images       ProductImage[]   //connects to multiple entries like carousels/galleries  
+  categoryId   String          //ID of the category this product belongs to
+  category     Category         @relation(fields: [categoryId], references: [id]) //@relation(...)	Declares a relationship between models.
+  //fields: [categoryId]	The field in Product that stores the foreign key.
+  //references: [id]	The field in Category that categoryId points to 
+  //tells Prisma: “Each product belongs to one category, and that connection is made using the categoryId field, which matches the id of a category. 
+  //The foreign key field (customerId) to be declared first.
+  //Then the relation field (customer) with the @relation directive that connects it to the target model.
+  variants     ProductVariant[]  //Allows multiple versions of the product (e.g. S/M/L sizes or color options).
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  orderItems OrderItem[] //Each Product can be referenced by many OrderItems.
+//indexing for perfromance: these lines Create database indexes to speed up queries
+//@@index([fieldName]), Prisma instructs the database to build an index — a special data structure that speeds up lookups on that field.
+  @@index([categoryId]) //Find all products in a given category
+  @@index([isSale, isNew, isBestSeller]) //Find products that are new AND on sale AND bestsellers
+  @@index([createdAt]) //Show newest arrivals first
+  @@index([popularity]) //Show most popular products first
+}
+
+//defines how images are stored and linked to products in your database
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  productId String   //Foreign key linking this image to a specific product
+  product   Product  @relation(fields: [productId], references: [id]) //This image belongs to a product. Use productId to find the matching Product.id
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  sku       String  @unique
+  name      String? //Optional label (e.g. “Size M” or “Rose Gold”)
+  priceCents Int?
+  stock     Int     @default(0)  //	Inventory count for this variant, defaults to 0
+  productId String
+  product   Product @relation(fields: [productId], references: [id]) //This variant belongs to a product. Use productId to find the matching Product.id
+  orderItems OrderItem[]
+}
+
+model Coupon {
+  id        String   @id @default(cuid())
+  code      String   @unique  //The actual coupon code (e.g. "AARA20"), must be unique
+  percentOff Int?    // Optional percentage discount (e.g. 20 means 20% off)
+  amountOffCents Int?
+  active    Boolean  @default(true) //Is the coupon currently usable? Defaults to true
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  addresses Address[]
+  orders    Order[]
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  fullName   String
+  email      String
+  phone      String?  //Optional phone number
+  line1      String
+  city       String
+  country    String
+  postalCode String
+  orders Order[] //Inverse relation: one address can be used in many orders
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id]) //This address may belong to a customer. Use customerId to find the matching Customer.id
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  shippingAddressId String
+  shippingAddress Address       @relation(fields: [shippingAddressId], references: [id])
+  status          OrderStatus   @default(PENDING) //Enum for order lifecycle (e.g. PENDING, SHIPPED, DELIVERED)
+  paymentStatus   PaymentStatus @default(PENDING) //Enum for payment state (e.g. PENDING, PAID, FAILED)
+  subtotalCents   Int  //Total cost of items before discounts/shipping
+  discountCents   Int           @default(0)
+  shippingCents   Int           @default(0)
+  totalCents      Int
+  couponCode      String?
+  notes           String?
+  items           OrderItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([createdAt]) //speeds up queries like: “Show recent orders” / “Sort orders by date” / “Generate daily sales reports”
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  variantId  String?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity   Int
+  unitPriceCents Int
+  lineTotalCents Int
+  
+}

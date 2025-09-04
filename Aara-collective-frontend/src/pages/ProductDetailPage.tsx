@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import api from "../lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useCartContext } from "@/context/useCartContext";
+
 import {
   ShoppingCart,
   Heart,
@@ -17,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import ProductCard from "@/components/ProductCard";
+import { priceLabel } from "@/lib/money";
 
 //----------Typescript Types--------------//
 
@@ -64,129 +69,117 @@ type Product = {
   }[];
 };
 
-//------Mock Data using Product type. To be replaced with API----------//
-const MOCK_PRODUCT: Product = {
-  id: "1",
-  name: "Kundan Gold Necklace Set",
-  price: 899,
-  salePrice: null,
-  description:
-    "Handcrafted Kundan set with meenakari detailing and semi-precious stones. Perfect for weddings and celebrations.",
-  longDescription:
-    "Kundan jewelry has a rich history dating back to the Mughal era.\n\nEach piece is carefully hand‑set in gold-plated frames with attention to detail. The necklace features floral motifs, complemented by matching earrings and a maang tikka.",
-  category: "Jewellery",
-  images: [
-    "https://images.unsplash.com/photo-1601821765780-754fa98637c1?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1599643477877-530eb83abc8e?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=1200&q=80",
-  ],
-  variants: [
-    { name: "Gold", inStock: true },
-    { name: "Rose Gold", inStock: true },
-    { name: "Silver", inStock: false },
-  ],
-  features: [
-    "Authentic Kundan work with gold plating",
-    "Semi-precious stones and pearls",
-    "Includes necklace, earrings, and maang tikka",
-    "Handcrafted by skilled artisans",
-    "Comes in a premium gift box",
-  ],
-  specifications: {
-    Material: "Gold plated",
-    "Stone Type": "Kundan, semi-precious stones",
-    Weight: "Approx. 120g",
-    "Closure Type": "Lobster clasp",
-    Occasion: "Wedding, Festival, Ceremony",
-    Care: "Store in dry box, avoid water and perfume",
-  },
-  reviews: [
-    {
-      id: "r1",
-      user: "Priya Sharma",
-      avatar: "https://randomuser.me/api/portraits/women/45.jpg",
-      rating: 5,
-      date: "2 months ago",
-      title: "Stunning craftsmanship",
-      comment:
-        "Purchased for my wedding—quality and detailing are exceptional. Looked even better in person!",
-    },
-    {
-      id: "r2",
-      user: "Ananya Gupta",
-      avatar: "https://randomuser.me/api/portraits/women/68.jpg",
-      rating: 4,
-      date: "3 months ago",
-      title: "Beautiful but a bit heavy",
-      comment:
-        "Absolutely gorgeous piece. Slightly heavier than expected, but it makes a statement.",
-    },
-  ],
-  //Related Prodcuts Section
-  relatedProducts: [
-    {
-      id: "2",
-      name: "Pearl Chandelier Earrings",
-      price: 249,
-      image:
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80",
-      subtitle: "Jewellery",
-    },
-    {
-      id: "3",
-      name: "Gold Bangles Set",
-      price: 599,
-      image:
-        "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=800&q=80",
-      subtitle: "Jewellery",
-    },
-    {
-      id: "4",
-      name: "Ruby Studded Maang Tikka",
-      price: 349,
-      image:
-        "https://images.unsplash.com/photo-1610951771882-a9b23e7b21ff?auto=format&fit=crop&w=800&q=80",
-      subtitle: "Jewellery",
-    },
-    {
-      id: "5",
-      name: "Antique Gold Jhumkas",
-      price: 199,
-      image:
-        "https://images.unsplash.com/photo-1575863438850-fb1c06a38885?auto=format&fit=crop&w=800&q=80",
-      subtitle: "Jewellery",
-    },
-  ],
-};
-
-//-------------Component-----------------//
-
 const ProductDetailPage = ({}: Props) => {
   // props is currently empty object. We can add in props later
 
-  // *Placeholder* We use useParams() to extract the id from the URL (e.g. /product/1). Here we use Mock data
-  const { id } = useParams();
-  //*Placeholder* Assign the mock data to a variable. API fetch in real app
-  const product = MOCK_PRODUCT;
-
-  //UI States
-  // State to show product image
+  const { id } = useParams<{ id: string }>();
+  const { addItemToCart } = useCartContext();
+  const { toast } = useToast();
+  const [data, setData] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  //Controls which tab is active in the UI. 3 valid types.
+  const [selectedVariant, setSelectedVariant] = useState<string>("");
   const [tab, setTab] = useState<"description" | "specs" | "reviews">(
     "description",
   );
-  //Tracks the quantity of the product the user wants to buy.
   const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    // handle missing id cleanly
+    if (!id) {
+      setLoading(false);
+      setError("Missing product id.");
+      return;
+    }
+
+    let cancelled = false; // guard setState after unmount
+    setLoading(true);
+    setError(null);
+
+    api
+      .getSingleProduct(id)
+      .then((res: any) => {
+        console.log("Fetched product:", res);
+        if (cancelled) return;
+
+        // Map API -> UI Product shape if needed.
+        // Adjust if your API already matches the Product type.
+        const mapped: Product = {
+          id: String(res.id),
+          name: res.name,
+          price: res.basePriceCents ? res.basePriceCents / 100 : 0,
+          salePrice: res.salePriceCents ? res.salePriceCents / 100 : null,
+          description: res.description ?? "",
+          longDescription: res.longDescription ?? "",
+          category: res.category ?? "Jewellery",
+          images: Array.isArray(res.images)
+            ? res.images
+            : res.image
+              ? [res.image]
+              : [],
+          variants: (res.variants ?? []).map((v: any) => ({
+            name: v.name,
+            inStock: !!v.inStock,
+          })),
+          features: res.features ?? [],
+          specifications: res.specifications ?? {},
+          reviews: (res.reviews ?? []).map((r: any) => ({
+            id: String(r.id),
+            user: r.user ?? "Anonymous",
+            avatar: r.avatar ?? "",
+            rating: Number(r.rating ?? 0),
+            date: r.date ?? "",
+            title: r.title ?? "",
+            comment: r.comment ?? "",
+          })),
+          relatedProducts: (res.relatedProducts ?? []).map((p: any) => ({
+            id: String(p.id),
+            name: p.name,
+            price: p.price ?? 0,
+            image: p.image,
+            subtitle: p.subtitle,
+          })),
+        };
+
+        setData(mapped);
+        setSelectedImage(0);
+        setSelectedVariant(mapped.variants[0]?.name ?? "");
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "Failed to load product";
+        setError(msg);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    console.log("Product id from URL:", id);
+  }, [id]);
+
+  if (loading)
+    return <div className="p-8 text-center text-sm">Loading product…</div>;
+  if (error)
+    return <div className="p-8 text-center text-sm text-red-600">{error}</div>;
+  if (!data) return <div className="p-8 text-center text-sm">Not found.</div>;
+
+  // Use fetched data with a safe fallback to mock
+  const product = data;
+
+  // useEffect(() => {
+  //   setSelectedImage(0);
+  //   setSelectedVariant(product.variants[0]?.name ?? "");
+  // }, [product.id]);
+  //Controls which tab is active in the UI. 3 valid types.
 
   // <string> annotation tells TypeScript this state will always be a string.
   //product.variants[0]? -> access the name of the first variant in the product.variants array.
   //?.name is optional chaining -> If product.variants[0] is undefined or null, it won’t crash the app.Instead, it returns undefined.
   //?? "" is the nullish coalescing operator.It returns the value on the left unless that value is null or undefined.If the left side is undefined, it falls back to the right side ("").
-  const [selectedVariant, setSelectedVariant] = useState<string>(
-    product.variants[0]?.name ?? "",
-  );
 
   //Average rating calculation
   //we sum up all the review ratings and divide by total number of reviews for the product.
@@ -204,11 +197,23 @@ const ProductDetailPage = ({}: Props) => {
   //Number formatter using the Intl API
   //.format(n) -> applies the formatter to the number n
 
-  const priceLabel = (n: number) =>
-    Intl.NumberFormat("en-SG", { style: "currency", currency: "SGD" }).format(
-      n,
-    );
+  const onAddToCart = () => {
+    // build the cart item from your product state
+    addItemToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      salePrice: product.salePrice ?? undefined,
+      image: product.images[0] ?? "/placeholder.png",
+      quantity: qty, // your qty state
+      variant: selectedVariant || undefined, // your variant state
+    });
 
+    toast({
+      title: "Added to cart",
+      description: `${product.name} (${selectedVariant || "Default"}) x${qty}`,
+    });
+  };
   //Increase / Decrease quantity
   // decQty decreases quantity but never below 1. Math.max(1, q - 1) to ensure the result is never less than 1
   // incQty increases quantity by 1.
@@ -247,8 +252,9 @@ const ProductDetailPage = ({}: Props) => {
           <div className="space-y-4">
             <div className="aspect-square overflow-hidden rounded-lg border bg-gray-50">
               <img
-                src={product.images[selectedImage]}
+                src={product.images[selectedImage] || "/placeholder.png"}
                 alt={product.name}
+                loading="eager"
                 className="h-full w-full object-cover"
               />
             </div>
@@ -296,7 +302,7 @@ const ProductDetailPage = ({}: Props) => {
 
             {/* Price */}
             <div>
-              {product.salePrice ? (
+              {product.salePrice != null ? (
                 <div className="flex items-center">
                   <span className="text-3xl font-semibold text-pink-700">
                     {priceLabel(product.salePrice)}
@@ -373,7 +379,10 @@ const ProductDetailPage = ({}: Props) => {
 
             {/* Actions */}
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <Button className="bg-pink-700 hover:bg-pink-800">
+              <Button
+                className="bg-pink-700 hover:bg-pink-800"
+                onClick={onAddToCart}
+              >
                 <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
               </Button>
               <Button variant="outline">
@@ -387,7 +396,7 @@ const ProductDetailPage = ({}: Props) => {
                 <Truck className="mr-3 h-5 w-5 text-pink-700" />
                 <div>
                   <p className="text-sm font-medium">Free Shipping</p>
-                  <p className="text-xs text-gray-500">On orders over $50</p>
+                  <p className="text-xs text-gray-500">On orders over S$50</p>
                 </div>
               </div>
               <div className="flex items-center rounded-lg border p-3">

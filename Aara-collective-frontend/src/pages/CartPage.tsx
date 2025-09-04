@@ -6,6 +6,8 @@ import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { priceLabel } from "@/lib/money";
+import { useCartContext } from "@/context/useCartContext";
 
 //----------Types------------//
 type Props = {};
@@ -21,75 +23,31 @@ type CartItem = {
   variant?: string;
 };
 
-//--------Mock Data (To be replaced with API calls from DB)--------//
-const initialCartItems: CartItem[] = [
-  {
-    id: "1",
-    name: "Kundan Gold Necklace Set",
-    price: 899,
-    image:
-      "https://images.unsplash.com/photo-1601821765780-754fa98637c1?auto=format&fit=crop&w=800&q=80",
-    quantity: 1,
-    variant: "Gold",
-  },
-  {
-    id: "2",
-    name: "Embroidered Silk Saree",
-    price: 499,
-    salePrice: 399,
-    image:
-      "https://images.unsplash.com/photo-1610030469668-8e6b6a582e23?auto=format&fit=crop&w=800&q=80",
-    quantity: 1,
-    variant: "Pink",
-  },
-];
-
 // --------------- Component --------------- //
 
 const CartPage = ({}: Props) => {
   //<CartItem[]> : We tell TS that This state will hold an array of CartItem objects. Each object in the array must match the CartItem structure. We also get autocompletion.
   //initialCartItems is initial value of the state
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
   const [couponCode, setCouponCode] = useState<string>("");
   const [couponApplied, setCouponApplied] = useState<boolean>(false);
 
-  //Helper: takes a number (like 499 or 899) and turns it into SGD 499 or SGD 899
-  //takes one input: a number called amount
-  //Intl.NumberFormat is a built-in international formatter
-  //.format(amount); takes the number (like 499) and formats it using the rules above.
-  const priceLabel = (amount: number) =>
-    Intl.NumberFormat("en-SG", {
-      style: "currency",
-      currency: "SGD",
-    }).format(amount);
+  // Get access to the cart state and functions from the context
+  const cartContext = useCartContext();
 
-  // change the quantity of an item in the shopping cart - but never let it drop below 1
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) {
-      return;
-    }
-    //If the quantity is valid, it updates the cart by: Finding the item with the matching id & Replacing its quantity with the new number.
-    //map() function that loops through all items in your cart. If the item's ID matches the one we want to update, we use the spread operator (...) to update qty of an object while keeping the rest unchanged. Example: {id: "saree123", name: "Silk Saree", price: 120, *quantity: 3*}
-    // If it doesn’t match, it just returns the item as-is.
-    setCartItems((previousItems) =>
-      previousItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item,
-      ),
-    );
-  };
+  // Get the list of items in the cart
+  const cartItems = cartContext.cartItems;
 
-  //Remove item from cart: Look at current list of items in the cart > filters out the item whose id matches the removed item > updates cart wtih new item.
-  const removeItem = (id: string) => {
-    setCartItems(
-      (previousItems) => previousItems.filter((item) => item.id !== id), //keeps every item except the one with the matching id.
-    );
-  };
+  // Function to remove an item from the cart
+  const removeItemFromCart = cartContext.removeItemFromCart;
+
+  // Function to update the quantity of an item
+  const updateItemQuantity = cartContext.updateItemQuantity;
 
   //Apply coupon -> .trim() removes any extra spaces before or after the code.
   // .toUpperCase() makes the code uppercase
   const applyCoupon = () => {
     const trimmed = couponCode.trim().toUpperCase();
-    if (trimmed === "Discount20") {
+    if (trimmed === "DISCOUNT20") {
       setCouponApplied(true);
     } else {
       alert("invalid coupon code");
@@ -127,7 +85,7 @@ const CartPage = ({}: Props) => {
   //---------render-----------//
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 pt-20">
       <div className="mx-auto max-w-7xl px-4 py-10">
         {/* gray Outer container, centers content (mx-auto), limits width */}
         <h1 className="mb-8 font-serif text-3xl font-bold">
@@ -224,7 +182,7 @@ const CartPage = ({}: Props) => {
                                 type="button"
                                 aria-label="Decrease quantity"
                                 onClick={() =>
-                                  updateQuantity(item.id, item.quantity - 1)
+                                  updateItemQuantity(item.id, item.quantity - 1)
                                 }
                                 className="px-3 py-2 text-gray-600 hover:text-pink-700"
                               >
@@ -239,7 +197,7 @@ const CartPage = ({}: Props) => {
                                 type="button"
                                 aria-label="Increase quantity"
                                 onClick={() =>
-                                  updateQuantity(item.id, item.quantity + 1)
+                                  updateItemQuantity(item.id, item.quantity + 1)
                                 }
                                 className="px-3 py-2 text-gray-600 hover:text-pink-700"
                               >
@@ -257,7 +215,7 @@ const CartPage = ({}: Props) => {
                             <button
                               type="button"
                               aria-label="Remove item"
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => removeItemFromCart(item.id)}
                               className="mt-2 md:mt-3 inline-flex items-center text-gray-400 hover:text-red-600 "
                             >
                               <Trash2 size={20} />
