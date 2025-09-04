@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useCartContext } from "@/context/useCartContext";
 
 //type Product = { ... } defines a custom TypeScript type that describes the shape of a product object.
 //export makes that type available to other files that import it.
@@ -82,6 +83,23 @@ const ProductCard = ({
       handleCardClick();
     }
   };
+
+  const handleAdd = (e: MouseEvent) => {
+  e.stopPropagation();
+  e.preventDefault();
+  if (onAddToCart) {
+    onAddToCart(product);
+  } else {
+    addItemToCart({
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: priceToShow,
+      quantity: 1,
+    });
+  }
+  window.dispatchEvent(new CustomEvent("cart:open")); // 🔧 auto-open
+};
 
   return (
     <div

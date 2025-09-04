@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   NavigationMenu,
@@ -6,68 +6,95 @@ import {
   NavigationMenuList,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCartContext } from "@/context/useCartContext";
+
+const formatSGD = (amount: number) =>
+  new Intl.NumberFormat("en-SG", {
+    style: "currency",
+    currency: "SGD",
+  }).format(amount);
+
+const CART_OPEN_EVENT = "cart:open";
 
 const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
-
-  // Check if current page is the landing page and transparent background only in landing page
   const isHomePage = location.pathname === "/";
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const { cartItems, removeItemFromCart, updateItemQuantity } =
+    useCartContext();
+
+  const totalItems = useMemo(
+    () => cartItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
+    [cartItems],
+  );
+
+  const totalAmount = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) =>
+          sum + (item.quantity ?? 0) * (item.salePrice ?? item.price),
+        0,
+      ),
+    [cartItems],
+  );
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    if (isHomePage) {
-      window.addEventListener("scroll", handleScroll);
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [isHomePage]);
+  useEffect(() => {
+    const openHandler = () => setOpen(true);
+    window.addEventListener(CART_OPEN_EVENT, openHandler);
+    return () => window.removeEventListener(CART_OPEN_EVENT, openHandler);
+  }, []);
 
-  const headerClasses = [
-    "top-0 left-0 w-full z-50 transition-colors duration-300",
-    isHomePage && !isScrolled
-      ? "absolute bg-gradient-to-b from-black/30 to-transparent"
-      : "fixed bg-white shadow-md",
-  ].join(" ");
-
-  const textColor =
-    isHomePage && !isScrolled ? "text-pink-100" : "text-pink-900";
+  const textColor = isHomePage && !isScrolled ? "text-white" : "text-gray-900";
 
   return (
-    <header className={headerClasses}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-4">
-        {/* Uses Flexbox to space out the logo, menu, and icons. */}
-
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-colors ${
+        isHomePage && !isScrolled
+          ? "bg-transparent"
+          : "bg-white/95 backdrop-blur border-b border-amber-200"
+      }`}
+    >
+      <div className="mx-auto max-w-7xl flex items-center justify-between px-4 py-4">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <Link to="/">
-            <img
-              src="/Logo1.png"
-              alt="Aara Collective Logo"
-              className="h-14 w-auto cursor-pointer"
-            />
-          </Link>
-        </div>
+        <Link to="/" className="flex items-center space-x-2">
+          <img
+            src="/Logo1.png"
+            alt="Aara Collective Logo"
+            className="h-14 w-auto"
+          />
+        </Link>
 
-        {/* Navigation Menu - Only visible on medium screens and up */}
+        {/* Navigation */}
         <NavigationMenu>
           <NavigationMenuList
             className={`hidden md:flex space-x-6 text-sm font-medium ${textColor}`}
           >
-            {["Jewellery", "Clothing", "Bags"].map((item) => (
-              <NavigationMenuItem key={item}>
+            {["Jewellery", "Clothing", "Bags"].map((label) => (
+              <NavigationMenuItem key={label}>
                 <NavigationMenuLink asChild>
                   <Link
                     to="/shop"
                     className="hover:text-pink-700 transition-colors"
                   >
-                    {item}
+                    {label}
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -75,17 +102,152 @@ const Header = () => {
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Clickable Icons */}
-        <div className="flex items-center space-x-4 text-pink-700">
-          <Search className="w-5 h-5 hover:text-pink-600 cursor-pointer transition-colors" />
-          
-          <Link to="/login">
-            <User className="w-5 h-5 hover:text-pink-600 cursor-pointer transition-colors" />
+        {/* Icons */}
+        <div className={`flex items-center space-x-4 ${textColor}`}>
+          <button
+            aria-label="Search"
+            className="hover:text-pink-600 transition-colors"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
+          <Link to="/login" aria-label="Account">
+            <User className="w-5 h-5 hover:text-pink-600 transition-colors" />
           </Link>
 
-          <Link to="/cart">
-            <ShoppingCart className="w-5 h-5 hover:text-pink-600 cursor-pointer transition-colors" />
-          </Link>
+          {/* Cart */}
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <button className="relative" aria-label="Open cart">
+                <ShoppingCart className="w-5 h-5 hover:text-pink-600 transition-colors" />
+                {totalItems > 0 && (
+                  <span className="absolute -right-2 -top-2 inline-flex min-w-[18px] items-center justify-center rounded-full bg-pink-600 px-1.5 text-[10px] font-semibold text-white shadow">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            </SheetTrigger>
+
+            <SheetContent
+              side="right"
+              className="w-full max-w-[480px] sm:max-w-[560px]"
+            >
+              <SheetHeader>
+                <SheetTitle className="text-left text-lg font-semibold text-gray-900">
+                  Your Cart
+                </SheetTitle>
+              </SheetHeader>
+
+              {/* Cart Items */}
+              <div className="mt-4 space-y-4">
+                {cartItems.length === 0 ? (
+                  <div className="rounded-lg border border-amber-200 p-4 text-sm text-gray-600">
+                    Your cart is empty.
+                  </div>
+                ) : (
+                  cartItems.map((item) => {
+                    const unit = item.salePrice ?? item.price;
+                    return (
+                      <div
+                        key={item.id + (item.variant ?? "")}
+                        className="flex gap-3 rounded-lg border border-amber-200 bg-white p-3"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-16 w-16 rounded object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="line-clamp-1 text-sm font-medium text-gray-900">
+                                {item.name}
+                              </div>
+                              {item.variant && (
+                                <div className="text-xs text-gray-500">
+                                  {item.variant}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-sm font-semibold text-pink-700">
+                              {formatSGD(unit)}
+                            </div>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="rounded border px-2 text-xs"
+                                onClick={() =>
+                                  updateItemQuantity(
+                                    item.id,
+                                    Math.max(1, (item.quantity ?? 1) - 1),
+                                  )
+                                }
+                              >
+                                −
+                              </button>
+                              <span className="text-sm">{item.quantity}</span>
+                              <button
+                                className="rounded border px-2 text-xs"
+                                onClick={() =>
+                                  updateItemQuantity(
+                                    item.id,
+                                    (item.quantity ?? 1) + 1,
+                                  )
+                                }
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              className="text-xs text-gray-500 underline hover:text-red-600"
+                              onClick={() => removeItemFromCart(item.id)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Totals */}
+              <div className="mt-6 space-y-3 border-t pt-4">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Items</span>
+                  <span className="font-medium text-gray-900">
+                    {totalItems}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-pink-800">
+                    {formatSGD(totalAmount)}
+                  </span>
+                </div>
+
+                <SheetFooter className="mt-4 flex gap-2">
+                  <Button
+                    asChild
+                    className="w-full bg-pink-700 hover:bg-pink-800"
+                  >
+                    <Link to="/checkout" onClick={() => setOpen(false)}>
+                      Make Payment
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/shop" onClick={() => setOpen(false)}>
+                      Continue Shopping
+                    </Link>
+                  </Button>
+                </SheetFooter>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

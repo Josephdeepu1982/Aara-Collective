@@ -28,7 +28,6 @@ const FeaturedProducts = ({
       <div className="mb-6 flex items-end justify-between">
         <div>
           <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
-            {" "}
             {title}
           </h2>
           <p className="text-sm text-gray-500">

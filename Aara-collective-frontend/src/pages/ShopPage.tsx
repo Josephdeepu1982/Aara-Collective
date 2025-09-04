@@ -9,6 +9,8 @@ import api from "@/lib/api";
 import type { ApiProduct } from "@/lib/api";
 
 // shadcn/ui components
+import { useCartContext } from "@/context/useCartContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   Pagination,
   PaginationContent,
@@ -72,6 +74,8 @@ const chooseStatusFilter = (statusState: {
 
 const ShopPage = () => {
   const navigate = useNavigate();
+  const { addItemToCart } = useCartContext();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams(); //useSearchParams lets use read the current URL's query parameters.
   // For example: /shop?category=Jewellery&status=sale
   // searchParams.get("category") → "Jewellery"
@@ -445,6 +449,7 @@ const ShopPage = () => {
             <div className="space-y-6">
               {items.map((p) => {
                 const onSale = p.isSale && p.salePrice && p.salePrice < p.price;
+                const unit = onSale ? p.salePrice! : p.price;
                 return (
                   <div
                     key={p.id}
@@ -495,7 +500,24 @@ const ShopPage = () => {
                       </div>
                       {/* Actions */}
                       <div className="mt-4 flex gap-3">
-                        <Button className="bg-pink-700 hover:bg-pink-800">
+                        <Button
+                          className="bg-pink-700 hover:bg-pink-800"
+                          onClick={() => {
+                            addItemToCart({
+                              id: p.id,
+                              name: p.name,
+                              image: p.image,
+                              price: unit,
+                              salePrice: onSale ? p.salePrice : undefined,
+                              quantity: 1,
+                            });
+                            window.dispatchEvent(new CustomEvent("cart:open")); // auto-open drawer
+                            toast({
+                              title: "Added to cart",
+                              description: `${p.name} added.`,
+                            });
+                          }}
+                        >
                           Add to cart
                         </Button>
                         <Button

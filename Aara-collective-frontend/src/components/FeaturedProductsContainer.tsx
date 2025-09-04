@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import FeaturedProducts from "./FeaturedProducts";
 import api from "@/lib/api";
 import type { Product as UIProduct } from "../components/ProductCard";
+import { useCartContext } from "@/context/useCartContext";
 
 //Converts a product from the API format into the format your UI card expects
 const convertToUIProduct = (product: any): UIProduct => ({
@@ -25,6 +26,8 @@ const FeaturedProductsContainer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { addItemToCart } = useCartContext();
+
   //fetchdata when the componenet loads. Calls getFeatured() to fetch products > Converts each product using mapToUI >Once done (success or fail), sets loading to false
   useEffect(() => {
     api
@@ -41,7 +44,24 @@ const FeaturedProductsContainer = () => {
   if (error)
     return <div className="p-8 text-center text-sm text-red-600">{error}</div>;
 
-  return <FeaturedProducts products={items} title="Featured Products" />;
+  const handleAddToCart = (p: UIProduct) => {
+    addItemToCart({
+      id: p.id,
+      name: p.name,
+      image: p.image,
+      price: p.salePrice ?? p.price,
+      salePrice: p.salePrice,
+      quantity: 1,
+    });
+  };
+
+  return (
+    <FeaturedProducts
+      products={items}
+      title="Featured Products"
+      onAddToCart={handleAddToCart}
+    />
+  );
 };
 
 export default FeaturedProductsContainer;

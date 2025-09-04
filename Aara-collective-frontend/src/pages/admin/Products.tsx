@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -50,6 +52,9 @@ const ProductsPage = (props: Props) => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
   );
+
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   //Fetch products from backend
   const fetchProducts = async () => {
@@ -123,15 +128,30 @@ const ProductsPage = (props: Props) => {
       setNewProductDescription("");
       setNewProductCategory("");
       setNewProductImage(null);
+      toast({
+        title: "Product created",
+        description: `${created.name} added.`,
+      });
     } catch (error) {
       console.error("Error adding Product", error);
       setError("Could not add product");
+      toast({ title: "Add failed", description: "Could not add product." });
     }
+  };
+
+  const handleViewProduct = (id: string) => {
+    navigate(`/product/${id}`);
+  };
+
+  const handleEditProduct = (id: string) => {
+    toast({ title: "Edit", description: "Edit UI not implemented yet." });
   };
 
   //Delete a product
   const handleDeleteProduct = async (productId: string) => {
     try {
+      if (!window.confirm("Delete this product? This cannot be undone."))
+        return;
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/products/${productId}`,
         {
@@ -141,15 +161,39 @@ const ProductsPage = (props: Props) => {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to delete product");
+        if (response.status === 409) {
+          let serverMsg = "";
+          try {
+            const body = await response.json();
+            serverMsg = body?.error || body?.message || "";
+          } catch {}
+
+          toast({
+            title: "Delete disabled",
+            description:
+              serverMsg ||
+              "This product is referenced by one or more orders and cannot be deleted. Mark it Inactive instead to hide it.",
+          });
+          return;
+        }
+
+        const text = await response.text();
+        throw new Error(
+          `Failed to delete product (HTTP ${response.status}): ${text}`,
+        );
       }
 
       setProducts((previousProducts) =>
         previousProducts.filter((p) => p.id !== productId),
       );
+      toast({ title: "Product deleted", description: "It has been removed." });
     } catch (error: any) {
       console.error("Error deleting product:", error);
       setError("Could not delete product.");
+      toast({
+        title: "Delete failed",
+        description: error?.message ?? "Unknown error",
+      });
     }
   };
 
@@ -298,10 +342,18 @@ const ProductsPage = (props: Props) => {
                 {new Date(product.createdAt).toLocaleDateString()}
               </TableCell>
               <TableCell className="flex space-x-2">
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleViewProduct(product.id)}
+                >
                   <Eye className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEditProduct(product.id)}
+                >
                   <Edit className="h-4 w-4" />
                 </Button>
                 <Button
