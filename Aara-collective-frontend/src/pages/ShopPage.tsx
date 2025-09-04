@@ -215,6 +215,27 @@ const ShopPage = () => {
       .finally(() => setLoading(false));
   }, [queryObject]);
 
+  // helper to compute unit price
+  const unitPrice = (p: UIProduct) =>
+    p.isSale && typeof p.salePrice === "number" ? p.salePrice : p.price;
+
+  // helper: add to cart + open drawer + toast
+  const addToCartAndOpen = (p: UIProduct) => {
+    const unit = unitPrice(p);
+    addItemToCart({
+      id: p.id,
+      name: p.name,
+      image: p.image,
+      price: unit,
+      // include salePrice for UI if present
+      salePrice:
+        p.isSale && typeof p.salePrice === "number" ? p.salePrice : undefined,
+      quantity: 1,
+    });
+    window.dispatchEvent(new CustomEvent("cart:open")); // auto-open drawer
+    toast({ title: "Added to cart", description: `${p.name} added.` });
+  };
+
   // ----- UI helpers -----
   const toggleCategory = (c: string, checked: boolean | "indeterminate") => {
     const next = !!checked
@@ -438,8 +459,9 @@ const ShopPage = () => {
                       price: cardPrice,
                       subtitle: p.category,
                     }}
-                    clickable // ⬅️ whole card navigates to /product/:id
-                    showAddButton={false}
+                    clickable
+                    showAddButton={true}
+                    onAddToCart={() => addToCartAndOpen(p)}
                   />
                 );
               })}
@@ -498,25 +520,13 @@ const ShopPage = () => {
                           </span>
                         )}
                       </div>
+
                       {/* Actions */}
                       <div className="mt-4 flex gap-3">
+                        {/* 🔧 replaced inline logic with helper for parity */}
                         <Button
                           className="bg-pink-700 hover:bg-pink-800"
-                          onClick={() => {
-                            addItemToCart({
-                              id: p.id,
-                              name: p.name,
-                              image: p.image,
-                              price: unit,
-                              salePrice: onSale ? p.salePrice : undefined,
-                              quantity: 1,
-                            });
-                            window.dispatchEvent(new CustomEvent("cart:open")); // auto-open drawer
-                            toast({
-                              title: "Added to cart",
-                              description: `${p.name} added.`,
-                            });
-                          }}
+                          onClick={() => addToCartAndOpen(p)} // ✅ DRY behavior
                         >
                           Add to cart
                         </Button>
