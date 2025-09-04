@@ -21,6 +21,7 @@ enum OrderStatus {
   PENDING //Order placed but not paid yet.
   PAID
   SHIPPED
+  DELIVERED
   CANCELLED
 }
 
@@ -46,6 +47,7 @@ model Product {
   id           String           @id @default(cuid())
   name         String           //Product name
   subtitle     String?
+  isActive       Boolean          @default(true)
   description  String?
   basePriceCents Int           //Regular price in cents (e.g. $2,499 = 249900)
   salePriceCents Int?
@@ -79,7 +81,7 @@ model ProductImage {
   url       String
   alt       String?
   productId String   //Foreign key linking this image to a specific product
-  product   Product  @relation(fields: [productId], references: [id]) //This image belongs to a product. Use productId to find the matching Product.id
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade) //This image belongs to a product. Use productId to find the matching Product.id
 }
 
 model ProductVariant {
@@ -89,7 +91,7 @@ model ProductVariant {
   priceCents Int?
   stock     Int     @default(0)  //	Inventory count for this variant, defaults to 0
   productId String
-  product   Product @relation(fields: [productId], references: [id]) //This variant belongs to a product. Use productId to find the matching Product.id
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade) //This variant belongs to a product. Use productId to find the matching Product.id
   orderItems OrderItem[]
 }
 
@@ -106,46 +108,50 @@ model Coupon {
 
 model Customer {
   id        String   @id @default(cuid())
-  email     String   @unique
   name      String?
+  email     String   @unique
+  phone     String?
   createdAt DateTime @default(now())
-  addresses Address[]
-  orders    Order[]
+  updatedAt DateTime @updatedAt
+  orders    Order[] // one-to-many relation: a customer can have many orders
 }
 
 model Address {
   id         String   @id @default(cuid())
   fullName   String
-  email      String
-  phone      String?  //Optional phone number
-  line1      String
-  city       String
-  country    String
-  postalCode String
-  orders Order[] //Inverse relation: one address can be used in many orders
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id]) //This address may belong to a customer. Use customerId to find the matching Customer.id
+  email      String?
+  phone      String?
+  address    String?      
+  city       String?      
+  country    String?      
+  postalCode String?      
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt 
+  orders     Order[]
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  customerId      String?
-  customer        Customer?     @relation(fields: [customerId], references: [id])
-  shippingAddressId String
-  shippingAddress Address       @relation(fields: [shippingAddressId], references: [id])
-  status          OrderStatus   @default(PENDING) //Enum for order lifecycle (e.g. PENDING, SHIPPED, DELIVERED)
-  paymentStatus   PaymentStatus @default(PENDING) //Enum for payment state (e.g. PENDING, PAID, FAILED)
-  subtotalCents   Int  //Total cost of items before discounts/shipping
-  discountCents   Int           @default(0)
-  shippingCents   Int           @default(0)
-  totalCents      Int
-  couponCode      String?
-  notes           String?
-  items           OrderItem[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                String   @id @default(cuid())
+  status            OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus  @default(PENDING)
+  subtotalCents     Int
+  discountCents     Int
+  shippingCents     Int
+  totalCents        Int
+  couponCode        String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  @@index([createdAt]) //speeds up queries like: “Show recent orders” / “Sort orders by date” / “Generate daily sales reports”
+  customerId        String?
+  customer          Customer? @relation(fields: [customerId], references: [id]) //optional — guest checkout wont be linked to customer).
+  shippingAddressId String?
+  shippingAddress   Address?  @relation(fields: [shippingAddressId], references: [id])
+
+  items             OrderItem[]
+
+  stripePaymentIntentId String?
+  currency String @default("SGD")
 }
 
 model OrderItem {
@@ -159,5 +165,6 @@ model OrderItem {
   quantity   Int
   unitPriceCents Int
   lineTotalCents Int
+  
   
 }

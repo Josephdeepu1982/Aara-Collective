@@ -62,21 +62,14 @@ const priceCart = async (
   //Step4: Apply Coupon discount if a code was entered
   let discountCents = 0;
   if (enteredCouponCode) {
-    const foundCoupon = await findActiveCoupon(enteredCouponCode);
-    if (!foundCoupon) {
-      const error = new Error("invalid coupon");
-      throw Object.assign(error, { status: 400 });
-    }
-    if (foundCoupon.percentOff) {
-      const percentDiscount = Math.floor(
-        subtotalCents * (foundCoupon.percentOff / 100)
-      );
-      discountCents = percentDiscount;
-    }
-    if (foundCoupon.amountOffCents) {
-      discountCents = Math.max(discountCents, foundCoupon.amountOffCents);
-      //If the coupon has a fixed discount (e.g. $5 off), this line ensures that: we use the larger of the two discounts: percentage-based or fixed.Math.max(...) picks the higher value.
-    }
+    const code = enteredCouponCode.toUpperCase(); // 🔧 CHANGE
+    const found = await findActiveCoupon(code);
+    if (!found)
+      throw Object.assign(new Error("invalid coupon"), { status: 400 });
+    if (found.percentOff)
+      discountCents = Math.floor(subtotalCents * (found.percentOff / 100));
+    if (found.amountOffCents)
+      discountCents = Math.max(discountCents, found.amountOffCents);
   }
 
   // Step 5: Add shipping cost (free if total after discount is over 5000 cents)
@@ -86,12 +79,7 @@ const priceCart = async (
   const totalCents = subtotalCents - discountCents + shippingCents;
 
   // Step 7: Return all pricing details
-  return {
-    subtotalCents: subtotalCents,
-    discountCents: discountCents,
-    shippingCents: shippingCents,
-    totalCents: totalCents,
-  };
+  return { subtotalCents, discountCents, shippingCents, totalCents };
 };
 
 // This function creates the order in the database using the pricing info
