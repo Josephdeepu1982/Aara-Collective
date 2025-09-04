@@ -47,11 +47,12 @@ export const listProducts = async (query: ProductQuery) => {
   }
   //Converts the minimum price from dollars to cents. Only adds it to the query if it’s defined.
   const minCents = convertToCents(query.minPrice);
-  if (minCents !== undefined) {
+  if (minCents !== undefined && minCents > 0) {
     queryOptions.minCents = minCents;
   }
+
   const maxCents = convertToCents(query.maxPrice);
-  if (maxCents !== undefined) {
+  if (maxCents !== undefined && maxCents > 0) {
     queryOptions.maxCents = maxCents;
   }
   //If the user filtered by status (like "sale" or "new"), include it in the query.

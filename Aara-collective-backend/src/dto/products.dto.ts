@@ -10,14 +10,51 @@ export const productQuerySchema = z.object({
   //field: minPrice, accepts a number ≥ 0 (optional) -> Filters products with price above this value
   maxPrice: z.coerce.number().min(0).optional(),
   status: z.enum(["sale", "new", "best"]).optional(), //field: status accepts One of "sale", "new", "best" (optional) -> Filters by product status or tag
-  sort: z.enum(["newest", "price-low", "price-high", "popular"]).default("newest"),
-  page: z.coerce.number().min(1).default(1), 
+  sort: z
+    .enum(["newest", "price-low", "price-high", "popular"])
+    .default("newest"),
+  page: z.coerce.number().min(1).default(1),
   //field: page, accepts A number ≥ 1 -> Controls pagination; defaults to page 1
   //z.coerce? converts strings to numbers automatically. So if someone sends ?minPrice=100 in the URL (which is a string), Zod will turn it into a number for you. No manual parsing needed.
   pageSize: z.coerce.number().min(1).max(100).default(12),
 });
 
 export type ProductQuery = z.infer<typeof productQuerySchema>;
+
+export const createProductSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  subtitle: z.string().optional(),
+  description: z.string().optional(),
+  basePriceCents: z.number().min(1, "Price must be greater than 0"),
+  salePriceCents: z.number().optional(),
+  isActive: z.boolean().default(true),
+  isSale: z.boolean().default(false),
+  isNew: z.boolean().default(false),
+  isBestSeller: z.boolean().default(false),
+  categoryId: z.string().min(1, "Category is required"),
+
+  images: z
+    .array(
+      z.object({
+        url: z.string().min(1, "Image URL is required"),
+        alt: z.string().optional(),
+      })
+    )
+    .optional(),
+
+  variants: z
+    .array(
+      z.object({
+        sku: z.string(),
+        name: z.string().nullable().optional(),
+        priceCents: z.number().min(0),
+        stock: z.number().min(0).default(0),
+      })
+    )
+    .optional(),
+});
+
+export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 //ProductQuery Creates a TypeScript type based on the schema.
 //someone visits: /products?category=earrings&minPrice=100&sort=price-low&page=2

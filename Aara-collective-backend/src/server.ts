@@ -1,7 +1,11 @@
+import "dotenv/config";
+
 import app from "./app.js";
-import { env } from "./config/env.js";
 
-app.listen(env.PORT, () => {
-  console.log(`API listening on http://localhost:${env.PORT}`);
+app.set("trust proxy", 1);
+
+const PORT = Number(process.env.PORT || 4000);
+
+app.listen(PORT, () => {
+  console.log(`API listening on http://localhost:${PORT}`);
 });
-
