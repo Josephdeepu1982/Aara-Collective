@@ -18,21 +18,21 @@ const slides = [
     subtitle:
       "Discover handcrafted jewelry that brings India's rich heritage to your doorstep",
     cta: "Shop Now",
-    link: "/jewellery",
+    link: "/shop",
   },
   {
     image: "/carousel/Banner2.png",
     title: "Traditional Attire",
     subtitle: "Elegant sarees and ethnic wear for the modern woman",
     cta: "Explore",
-    link: "/clothing",
+    link: "/shop",
   },
   {
     image: "/carousel/Banner3.png",
     title: "Artisanal Footwear",
     subtitle: "Step into comfort and style with our handcrafted shoes",
     cta: "View Collection",
-    link: "/shoes",
+    link: "/shop",
   },
 ];
 

@@ -9,48 +9,64 @@ import lineClamp from "@tailwindcss/line-clamp";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: "class",
+  darkMode: ["class", "class"],
   theme: {
-    extend: {
-      fontFamily: {
-        script: ['"Arizonia"', "cursive"],
-        sans: ['"Inter"', "sans-serif"],
-      },
-      colors: {
-        ...colors,
-        brand: {
-          pink: {
-            50: "#fff5f7",
-            100: "#ffe5ea",
-            200: "#f9ccd5",
-            300: "#f4a7b5",
-            400: "#ee7997",
-            500: "#e6547b",
-            600: "#d63384",
-            700: "#b31965",
-            800: "#8c124f",
-            900: "#5e0c35",
-          },
-          gold: {
-            50: "#fdf7e7",
-            100: "#fbefc5",
-            200: "#f9e7a1",
-            300: "#f4d76f",
-            400: "#efc743",
-            500: "#d4af37",
-            600: "#b6962f",
-            700: "#937726",
-            800: "#71591c",
-            900: "#4f3c13",
-          },
-        },
-        border: "var(--border)",
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: "var(--primary)",
-        "primary-foreground": "var(--primary-foreground)",
-      },
-    },
+  	extend: {
+  		fontFamily: {
+  			script: [
+  				'Arizonia"',
+  				'cursive'
+  			],
+  			sans: [
+  				'Inter"',
+  				'sans-serif'
+  			]
+  		},
+  		colors: {
+                ...colors,
+  			brand: {
+  				pink: {
+  					'50': '#fff5f7',
+  					'100': '#ffe5ea',
+  					'200': '#f9ccd5',
+  					'300': '#f4a7b5',
+  					'400': '#ee7997',
+  					'500': '#e6547b',
+  					'600': '#d63384',
+  					'700': '#b31965',
+  					'800': '#8c124f',
+  					'900': '#5e0c35'
+  				},
+  				gold: {
+  					'50': '#fdf7e7',
+  					'100': '#fbefc5',
+  					'200': '#f9e7a1',
+  					'300': '#f4d76f',
+  					'400': '#efc743',
+  					'500': '#d4af37',
+  					'600': '#b6962f',
+  					'700': '#937726',
+  					'800': '#71591c',
+  					'900': '#4f3c13'
+  				}
+  			},
+  			border: 'var(--border)',
+  			background: 'var(--background)',
+  			foreground: 'var(--foreground)',
+  			primary: 'var(--primary)',
+  			'primary-foreground': 'var(--primary-foreground)',
+  			sidebar: {
+  				DEFAULT: 'hsl(var(--sidebar-background))',
+  				foreground: 'hsl(var(--sidebar-foreground))',
+  				primary: 'hsl(var(--sidebar-primary))',
+  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+  				accent: 'hsl(var(--sidebar-accent))',
+  				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+  				border: 'hsl(var(--sidebar-border))',
+  				ring: 'hsl(var(--sidebar-ring))'
+  			}
+  		}
+  	}
   },
   plugins: [typography, forms, aspectRatio, lineClamp],
 };
