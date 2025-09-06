@@ -103,8 +103,7 @@ const ProductDetailPage = ({}: Props) => {
         console.log("Fetched product:", res);
         if (cancelled) return;
 
-        // Map API -> UI Product shape if needed.
-        // Adjust if your API already matches the Product type.
+      
         const mapped: Product = {
           id: String(res.id),
           name: res.name,
@@ -170,24 +169,6 @@ const ProductDetailPage = ({}: Props) => {
   // Use fetched data with a safe fallback to mock
   const product = data;
 
-  // useEffect(() => {
-  //   setSelectedImage(0);
-  //   setSelectedVariant(product.variants[0]?.name ?? "");
-  // }, [product.id]);
-  //Controls which tab is active in the UI. 3 valid types.
-
-  // <string> annotation tells TypeScript this state will always be a string.
-  //product.variants[0]? -> access the name of the first variant in the product.variants array.
-  //?.name is optional chaining -> If product.variants[0] is undefined or null, it won’t crash the app.Instead, it returns undefined.
-  //?? "" is the nullish coalescing operator.It returns the value on the left unless that value is null or undefined.If the left side is undefined, it falls back to the right side ("").
-
-  //Average rating calculation
-  //we sum up all the review ratings and divide by total number of reviews for the product.
-  //.reduce() method loops through all reviews and add up their rating values.
-  //  acc is the accumulator (starts at 0)
-  //  r is each individual review
-  //  r.rating accesses the rating property inside the review object.
-  //Math.max(1, ....) avoids division by zero (divide by 1 instead of 0).
   const averageRating =
     product.reviews.reduce((acc, r) => acc + r.rating, 0) /
     Math.max(1, product.reviews.length);

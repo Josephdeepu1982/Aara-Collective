@@ -26,6 +26,7 @@ const FeaturedProductsContainer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  //gives access to the shared cart state and functions defined in CartProviderComponent.
   const { addItemToCart } = useCartContext();
 
   //fetchdata when the componenet loads. Calls getFeatured() to fetch products > Converts each product using mapToUI >Once done (success or fail), sets loading to false

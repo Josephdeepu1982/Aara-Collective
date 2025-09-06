@@ -44,6 +44,7 @@ const HeroCarousel = () => {
   const [api, setApi] = React.useState<CarouselApi | null>(null);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
+  //Waits for the carousel API (api) to be available. Subscribes to the "select" event—fired when the user changes slides.Updates your local selectedIndex state to reflect the current slide. Calls onSelect() once initially to sync the index on mount.
   React.useEffect(() => {
     if (!api) return;
 
