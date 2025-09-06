@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, ReactNode } from "react";
 
-// Define the shape of a cart item
+// Define the shape of each item in the cart
 export type CartItem = {
   id: string;
   name: string;
@@ -22,7 +22,7 @@ export type CartContextType = {
 // Create the context object
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Provider component that wraps your app
+// Provider component that wraps the app
 export const CartProviderComponent = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 

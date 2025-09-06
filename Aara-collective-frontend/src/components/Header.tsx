@@ -50,12 +50,15 @@ const Header = () => {
     [cartItems],
   );
 
+  //Adds a scroll listener on mount -> Updates isScrolled to trigger header style changes
   useEffect(() => {
+    //scrollY returns the Y coordinate of the top edge of the current viewport
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  //Listens for a custom event (cart:open) -> Opens the cart drawer when triggered
   useEffect(() => {
     const openHandler = () => setOpen(true);
     window.addEventListener(CART_OPEN_EVENT, openHandler);

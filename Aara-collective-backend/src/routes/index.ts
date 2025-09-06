@@ -7,17 +7,6 @@ import { getAuth } from "@clerk/express";
 
 const router = Router();
 
-// 🧪 DEBUG: remove before production
-router.get("/__debug/auth", (req, res) => {
-  const auth = getAuth(req);
-  res.json({
-    hasUser: !!auth?.userId,
-    userId: auth?.userId ?? null,
-    // Only include minimal info (avoid PII)
-    hasSessionClaims: !!auth?.sessionClaims,
-  });
-});
-
 // Use the product routes for any path starting with "/products"
 router.use("/products", productsRoutes);
 // Use the order routes for any path starting with "/orders"
